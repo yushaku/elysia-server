@@ -8,17 +8,32 @@ on:
 
 jobs:
   deploy:
-    name: Deploy to EC2 on master branch
-    runs-on: ubuntu-latest
+    name: Deploy to EC2
+    runs-on: ubuntu-20.04
+    env:
+      EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+      HOST_DNS: ${{ secrets.HOST_DNS }}
+      USERNAME: ${{ secrets.USERNAME }}
+      TARGET_DIR: ${{ secrets.TARGET_DIR }}
 
     steps:
-      - name: Checkout the files
+      - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Deploy to Server 1
+      - name: Install Bun.js
+        uses: oven-sh/setup-bun@v1
+
+      - name: Install bun dependencies
+        run: bun install
+
+      - name: Deploy to Server
         uses: easingthemes/ssh-deploy@main
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
-          REMOTE_HOST: ${{ secrets.HOST_DNS }}
-          REMOTE_USER: ${{ secrets.USERNAME }}
-          TARGET: ${{ secrets.TARGET_DIR }}
+        with:
+          ssh_private_key: $EC2_SSH_KEY
+          remote_host: $HOST_DNS
+          remote_user: $USERNAME
+          target: $TARGET_DIR
+          script_before: |
+            cd $TARGET_DIR
+          script_after: |
+            pm2 restart all
