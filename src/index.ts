@@ -1,15 +1,14 @@
-import { Elysia } from "elysia";
+import { cors } from "@elysiajs/cors";
 import { swagger } from "@elysiajs/swagger";
-import { userRouter } from "./controllers";
-import { treaty } from "@elysiajs/eden";
+import { Elysia } from "elysia";
 
-const app = new Elysia()
+import { userRouter } from "./controllers";
+
+export const app = new Elysia()
   .use(swagger({ path: "docs" }))
+  .use(cors())
   .use(userRouter)
   .get("/", () => "Hello Elysia");
 
 app.listen(3000);
 console.log(`🦊 is running at ${app.server?.hostname}:${app.server?.port}`);
-
-const apis = treaty(app);
-export default apis;

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import apis from "@/index";
+import { treaty } from "@elysiajs/eden";
+import { app } from "@/index";
+
+const apis = treaty(app);
 
 describe("Elysia", () => {
   it("return a response", async () => {
