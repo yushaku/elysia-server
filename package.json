@@ -12,6 +12,7 @@
     "elysia": "latest"
   },
   "devDependencies": {
+    "@elysiajs/eden": "^1.0.12",
     "@elysiajs/swagger": "^1.0.5",
     "bun-types": "latest"
   }
