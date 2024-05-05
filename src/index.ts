@@ -8,7 +8,10 @@ export const app = new Elysia()
   .use(swagger({ path: "docs" }))
   .use(cors())
   .use(userRouter)
-  .get("/", () => "Hello Elysia");
+  .get("/", () => "Hello Elysia")
+  .onError(({ code, error }) => {
+    if (code === "VALIDATION") return error.message;
+  })
+  .listen(3000);
 
-app.listen(3000);
 console.log(`🦊 is running at ${app.server?.hostname}:${app.server?.port}`);
