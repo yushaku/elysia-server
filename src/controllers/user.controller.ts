@@ -1,8 +1,8 @@
-import { userLoginDTO } from '@/validators';
+import { userLoginDTO, userNonceDTO } from '@/validators';
 import { JWT_SECRETS } from '@/setup';
 import { jwt } from '@elysiajs/jwt';
 import Elysia from 'elysia';
-import { handleUserSignin, registerUser, handleTokenRefresh } from '@/services/user.service';
+import { handleUserSignin, getUserById, getUserNonce } from '@/services/user.service';
 import autoRefresh from '@/middleware/auto-refresh';
 
 const jwtPlugin = jwt({ name: 'jwt', secret: JWT_SECRETS });
@@ -10,38 +10,28 @@ const jwtPlugin = jwt({ name: 'jwt', secret: JWT_SECRETS });
 export const userRouter = new Elysia({ prefix: '/users' })
   .use(jwtPlugin)
   .use(autoRefresh)
-  .post('/register', registerUser, {
-    body: userLoginDTO.body,
-    detail: {
-      summary: 'Register user',
-      tags: ['authentication'],
-    },
-  })
-  .post('/sign-in', handleUserSignin, {
-    ...userLoginDTO,
-    detail: {
-      summary: 'User Sign In',
-      tags: ['authentication'],
-    },
-  })
-  .post('/refresh', handleTokenRefresh, {
-    detail: {
-      summary: 'Refresh access token',
-      tags: ['authentication'],
-    },
-  })
+  .post('/login', handleUserSignin, userLoginDTO)
   .get(
     '/profile',
     async ({ jwt, set, cookie: { access } }) => {
       try {
-        const profile = await jwt.verify(access.value);
+        const payload = await jwt.verify(access.value);
 
-        if (!profile) {
+        if (!payload) {
           set.status = 401;
           return 'Unauthorized';
         }
 
-        return `Hello ${profile.user_id}`;
+        const user = await getUserById(payload.address as string);
+        if (!user) {
+          set.status = 404;
+          return 'User not found';
+        }
+
+        return {
+          message: `Hello ${user.name}!`,
+          user,
+        };
       } catch {
         set.status = 401;
         return 'Unauthorized';
@@ -53,4 +43,5 @@ export const userRouter = new Elysia({ prefix: '/users' })
         tags: ['Users'],
       },
     },
-  );
+  )
+  .get('/nonce/:address', getUserNonce, userNonceDTO);

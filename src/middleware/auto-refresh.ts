@@ -17,7 +17,7 @@ const autoRefresh = (app: Elysia) =>
         const payload = await jwt.verify(refresh.value);
         if (payload && payload.type === 'refresh') {
           const newAccessToken = await jwt.sign(
-            { user_id: payload.user_id, type: 'access' },
+            { user_id: payload.user_id, username: payload.username, type: 'access' },
             { expiresIn: '15m' },
           );
           access.set({
