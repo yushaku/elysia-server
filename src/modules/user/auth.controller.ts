@@ -1,7 +1,7 @@
 // Auth controller - handles authentication endpoints
 import { Elysia, t } from 'elysia';
 import { jwtPlugin } from '@/middleware/auth';
-import { UserService } from './service';
+import { UserService } from './user.service';
 import { UserModel } from './model';
 import { BadRequestException } from '@/utils/exceptions';
 

@@ -1,7 +1,7 @@
 // User data controller - handles user-related endpoints
 import { Elysia, t } from 'elysia';
 import { jwtPlugin, verifyToken } from '@/middleware/auth';
-import { UserService } from './service';
+import { UserService } from './user.service';
 import { UserModel } from './model';
 
 export const userController = new Elysia({ prefix: '/user' }).use(jwtPlugin).get(
