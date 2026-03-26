@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: yuchi-observability
+    orgId: 1
+    folder: Yuchi
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/json

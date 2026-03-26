@@ -1,0 +1,119 @@
+services:
+  app:
+    container_name: ely-server
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '${PORT}:${PORT}'
+    networks:
+      - elysia
+    env_file:
+      - .env
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 3.75g
+
+  redis:
+    image: redis:7.0-alpine
+    container_name: ely-redis
+    networks:
+      - elysia
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.63.0
+    container_name: ely-redis-exporter
+    environment:
+      REDIS_ADDR: redis://redis:6379
+    depends_on:
+      - redis
+    networks:
+      - elysia
+
+  postgres:
+    image: postgres:16.2
+    container_name: ely-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_MAIN}
+    ports:
+      - 5434:5432
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - elysia
+
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: ely-postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: postgresql://${DB_USER}:${DB_PASS}@postgres:5432/${DB_MAIN}?sslmode=disable
+    depends_on:
+      - postgres
+    networks:
+      - elysia
+
+  loki:
+    image: grafana/loki:3.0.0
+    container_name: ely-loki
+    command: -config.file=/etc/loki/config.yml
+    volumes:
+      - ./docker/loki/config.yml:/etc/loki/config.yml:ro
+    ports:
+      - '3100:3100'
+    networks:
+      - elysia
+
+  promtail:
+    image: grafana/promtail:3.0.0
+    container_name: ely-promtail
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - ./docker/promtail/config.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - loki
+    networks:
+      - elysia
+
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: ely-prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - '9090:9090'
+    networks:
+      - elysia
+
+  grafana:
+    image: grafana/grafana:10.4.5
+    container_name: ely-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - '3001:3000'
+    depends_on:
+      - loki
+      - prometheus
+    networks:
+      - elysia
+
+networks:
+  elysia:
+
+volumes:
+  pg_data:
+  node_modules:
+  grafana_data:

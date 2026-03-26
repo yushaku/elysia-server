@@ -1,0 +1,27 @@
+FROM oven/bun:1 AS deps
+
+WORKDIR /app
+
+COPY package.json bun.lock tsconfig.json prisma.config.ts ./
+RUN bun install --frozen-lockfile
+
+COPY prisma ./prisma
+RUN bunx prisma generate
+
+
+FROM oven/bun:1-slim AS runner
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=8080
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/prisma ./prisma
+COPY --from=deps /app/generated ./generated
+COPY package.json bun.lock tsconfig.json prisma.config.ts ./
+COPY src ./src
+
+EXPOSE 8080
+
+CMD ["bun", "run", "src/index.ts"]
