@@ -1,5 +1,6 @@
 import Redis from 'ioredis';
 import { env } from './env';
+import { log } from '@/utils/logger';
 
 let redis: Redis | null = null;
 
@@ -14,11 +15,11 @@ export function getRedis(): Redis {
     });
 
     redis.on('error', (err) => {
-      console.error('Redis Client Error:', err);
+      log.error({ event: 'redis.error', err }, 'Redis client error');
     });
 
     redis.on('connect', () => {
-      console.log('✅ Redis connected');
+      log.info({ event: 'redis.connect' }, 'Redis connected');
     });
   }
 

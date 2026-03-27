@@ -10,6 +10,13 @@ services:
       - elysia
     env_file:
       - .env
+    volumes:
+      - ./src:/app/src
+      - ./prisma:/app/prisma
+      - ./generated:/app/generated
+      - ./tsconfig.json:/app/tsconfig.json:ro
+      - ./prisma.config.ts:/app/prisma.config.ts:ro
+      - node_modules:/app/node_modules
     deploy:
       replicas: 1
       resources:

@@ -1,7 +1,32 @@
 import { status } from 'elysia';
 import { HttpException } from '@/utils/exceptions';
+import { log as baseLog } from '@/utils/logger';
+import { Prisma } from 'generated/prisma/client';
 
-export const errorHandler = ({ code, error: err, set }: any) => {
+export const errorHandler = ({ code, error: err, set, request }: any) => {
+  const requestId =
+    (set?.headers?.['x-request-id'] as string | undefined) ??
+    request?.headers?.get?.('x-request-id') ??
+    request?.headers?.get?.('X-Request-Id');
+
+  const log = requestId ? baseLog.child({ requestId }) : baseLog;
+
+  const url = request?.url ? new URL(request.url) : null;
+  const path = url?.pathname;
+
+  log.error(
+    {
+      event: 'error.handler',
+      code,
+      path,
+      errorName: err instanceof Error ? err.name : 'Error',
+      errorMessage: err instanceof Error ? err.message : String(err),
+      stack:
+        err instanceof Error && process.env.NODE_ENV !== 'production' ? err.stack : undefined,
+    },
+    'Unhandled error',
+  );
+
   if (
     err &&
     typeof err === 'object' &&
@@ -14,6 +39,7 @@ export const errorHandler = ({ code, error: err, set }: any) => {
       success: false,
       error: httpException.error || httpException.name || 'Error',
       message: httpException.message,
+      requestId,
     });
   }
 
@@ -24,6 +50,37 @@ export const errorHandler = ({ code, error: err, set }: any) => {
       success: false,
       error: err.error || err.name || 'Error',
       message: err.message,
+      requestId,
+    });
+  }
+
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    if (err.code === 'P2002') {
+      set.status = 409;
+      return status(409, {
+        success: false,
+        error: 'Conflict',
+        message: 'Unique constraint failed',
+        requestId,
+      });
+    }
+
+    if (err.code === 'P2025') {
+      set.status = 404;
+      return status(404, {
+        success: false,
+        error: 'Not Found',
+        message: 'Record not found',
+        requestId,
+      });
+    }
+
+    set.status = 400;
+    return status(400, {
+      success: false,
+      error: 'Bad Request',
+      message: process.env.NODE_ENV === 'production' ? 'Database error' : err.message,
+      requestId,
     });
   }
 
@@ -34,6 +91,7 @@ export const errorHandler = ({ code, error: err, set }: any) => {
       success: false,
       error: (err instanceof Error ? err.name : 'Error') || 'Error',
       message: (err instanceof Error ? err.message : undefined) || 'An error occurred',
+      requestId,
     });
   }
 
@@ -42,7 +100,8 @@ export const errorHandler = ({ code, error: err, set }: any) => {
     return status(400, {
       success: false,
       error: 'Validation Error',
-      message: err.message,
+      message: err?.message ?? 'Invalid request',
+      requestId,
     });
   }
 
@@ -52,6 +111,7 @@ export const errorHandler = ({ code, error: err, set }: any) => {
       success: false,
       error: 'Not Found',
       message: 'The requested resource was not found',
+      requestId,
     });
   }
 
@@ -60,7 +120,11 @@ export const errorHandler = ({ code, error: err, set }: any) => {
     return status(500, {
       success: false,
       error: 'Internal Server Error',
-      message: err.message,
+      message:
+        process.env.NODE_ENV === 'production'
+          ? 'An unexpected error occurred'
+          : (err instanceof Error ? err.message : undefined) || 'An unexpected error occurred',
+      requestId,
     });
   }
 
@@ -69,6 +133,10 @@ export const errorHandler = ({ code, error: err, set }: any) => {
   return status(500, {
     success: false,
     error: 'Internal Server Error',
-    message: (err instanceof Error ? err.message : undefined) || 'An unexpected error occurred',
+    message:
+      process.env.NODE_ENV === 'production'
+        ? 'An unexpected error occurred'
+        : (err instanceof Error ? err.message : undefined) || 'An unexpected error occurred',
+    requestId,
   });
 };

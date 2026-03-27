@@ -147,7 +147,7 @@ Each feature module should follow this pattern:
 
 ## Notes
 
-- The server runs on port 3000 by default (configurable via PORT env var)
+- The server runs on port 8080 by default (configurable via PORT env var)
 - API prefix is `/api` by default (configurable via API_PREFIX env var)
 - OpenAPI docs available at `/api/openapi`
 - Health check at `/api/health`

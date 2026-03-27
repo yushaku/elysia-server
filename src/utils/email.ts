@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import { env } from '@/config/env';
+import { log } from '@/utils/logger';
 
 // Create Resend client instance
 const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
@@ -10,14 +11,15 @@ const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
 export async function sendOtpEmail(email: string, code: string): Promise<void> {
   // If Resend is not configured, fall back to console logging
   if (!resend || !env.RESEND_API_KEY) {
-    console.log('\n📧 OTP Email (Resend not configured - Development Mode)');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log(`To: ${email}`);
-    console.log(`Subject: Your login code`);
-    console.log(`Code: ${code}`);
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-    console.log('💡 To enable Resend, set RESEND_API_KEY in your .env file');
-    console.log('   Get your API key from: https://resend.com/api-keys');
+    log.warn(
+      {
+        event: 'email.otp.dev_fallback',
+        email,
+        code,
+        reason: 'RESEND_API_KEY not configured',
+      },
+      'OTP email fallback (Resend not configured)',
+    );
     return;
   }
 
@@ -40,13 +42,13 @@ export async function sendOtpEmail(email: string, code: string): Promise<void> {
     });
 
     if (error) {
-      console.error('Failed to send OTP email:', error);
+      log.error({ event: 'email.otp.error', err: error, email }, 'Failed to send OTP email');
       throw new Error(`Failed to send OTP email: ${JSON.stringify(error)}`);
     }
 
-    console.log(`✅ OTP email sent to ${email} via Resend`);
+    log.info({ event: 'email.otp.sent', email, resendId: data?.id }, 'OTP email sent');
   } catch (error) {
-    console.error('Failed to send OTP email:', error);
+    log.error({ event: 'email.otp.error', err: error, email }, 'Failed to send OTP email');
     throw error;
   }
 }
